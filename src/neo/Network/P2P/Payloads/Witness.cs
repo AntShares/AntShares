@@ -20,7 +20,16 @@ namespace Neo.Network.P2P.Payloads
         private const int MaxVerificationScript = 1024;
 
         public byte[] InvocationScript;
-        public byte[] VerificationScript;
+        private byte[] _VerificationScript;
+        public byte[] VerificationScript
+        {
+            get => _VerificationScript;
+            set
+            {
+                _VerificationScript = value;
+                StateDependent = _VerificationScript.Length == 0 || SmartContract.Helper.IsSolidTransfer(_VerificationScript);
+            }
+        }
 
         internal long GasConsumed { get; set; }
 
@@ -37,7 +46,7 @@ namespace Neo.Network.P2P.Payloads
             }
         }
 
-        public bool StateDependent => VerificationScript.Length == 0;
+        public bool StateDependent { get; private set; } = true;
 
         public int Size => InvocationScript.GetVarSize() + VerificationScript.GetVarSize();
 

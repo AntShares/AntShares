@@ -8,6 +8,7 @@ using Neo.VM;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Neo.SmartContract
 {
@@ -121,6 +122,77 @@ namespace Neo.SmartContract
                 || script[36] != (byte)OpCode.SYSCALL
                 || BitConverter.ToUInt32(script, 37) != ApplicationEngine.Neo_Crypto_VerifyWithECDsaSecp256r1)
                 return false;
+            return true;
+        }
+
+        private static readonly byte[] balanceOf = Encoding.UTF8.GetBytes("balanceOf");
+
+        public static bool IsSolidTransfer(this byte[] script)
+        {
+            if (script.Length < 10) return false;
+            int index;
+
+            if (script[0] >= (byte)OpCode.PUSHM1 && script[0] <= (byte)OpCode.PUSH16)
+            {
+                if (script.Length != 65) return false;
+                index = 1;
+            }
+            else if (script[0] == (byte)OpCode.PUSHINT8)
+            {
+                if (script.Length != 66) return false;
+                index = 2;
+            }
+            else if (script[0] == (byte)OpCode.PUSHINT16)
+            {
+                if (script.Length != 67) return false;
+                index = 3;
+            }
+            else if (script[0] == (byte)OpCode.PUSHINT32)
+            {
+                if (script.Length != 69) return false;
+                index = 5;
+            }
+            else if (script[0] == (byte)OpCode.PUSHINT64)
+            {
+                if (script.Length != 73) return false;
+                index = 9;
+            }
+            else if (script[0] == (byte)OpCode.PUSHINT128)
+            {
+                if (script.Length != 81) return false;
+                index = 17;
+            }
+            else if (script[0] == (byte)OpCode.PUSHINT256)
+            {
+                if (script.Length != 97) return false;
+                index = 33;
+            }
+            else
+            {
+                // Other pushes
+                return false;
+            }
+
+            if (script[index++] != (byte)OpCode.PUSHDATA1) return false; // Address
+            if (script[index++] != 20) return false;
+            index += 20;
+            if (script[index++] != (byte)OpCode.PUSH1) return false;
+            if (script[index++] != (byte)OpCode.PACK) return false;
+            if (script[index++] != (byte)OpCode.PUSHDATA1) return false;
+            if (script[index++] != balanceOf.Length) return false; // balanceOf
+
+            for (int x = 0; x < balanceOf.Length; index++, x++)
+                if (script[index] != balanceOf[x]) return false;
+
+            if (script[index++] != (byte)OpCode.PUSHDATA1) return false;    // Contract
+            if (script[index++] != 20) return false;
+            index += 20;
+            if (script[index++] != (byte)OpCode.SYSCALL) return false;
+            if (BitConverter.ToUInt32(script, index) != ApplicationEngine.System_Contract_Call)
+                return false;
+            index += 4;
+            if (script[index++] != (byte)OpCode.EQUAL) return false;
+            if (script[index++] != (byte)OpCode.ASSERT) return false;
             return true;
         }
 

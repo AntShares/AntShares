@@ -5,5 +5,6 @@ namespace Neo.Wallets
         public UInt160 AssetId;
         public BigDecimal Value;
         public UInt160 ScriptHash;
+        public bool SolidTransfer;
     }
 }

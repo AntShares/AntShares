@@ -1,5 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Neo.IO;
 using Neo.SmartContract;
+using Neo.VM;
+using System.Numerics;
 
 namespace Neo.UnitTests.SmartContract
 {
@@ -41,6 +44,106 @@ namespace Neo.UnitTests.SmartContract
                 202, 22, 18
             };
             Assert.IsFalse(case2.IsMultiSigContract());
+        }
+
+        [TestMethod]
+        public void TestIsSolidTransfer()
+        {
+            // PUSHX
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(12);
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHM1
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(-1);
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHINT8
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.Emit(OpCode.PUSHINT8, new byte[] { (byte)200 });
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHINT16
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(-255);
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHINT32
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(int.MaxValue);
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHINT64
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(long.MaxValue);
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHINT128
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(new BigInteger(long.MaxValue) * new BigInteger(long.MaxValue));
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
+
+            // PUSHINT256
+
+            using (ScriptBuilder sb = new ScriptBuilder())
+            {
+                sb.EmitPush(new BigInteger(long.MaxValue) * new BigInteger(long.MaxValue) * new BigInteger(long.MaxValue) * new BigInteger(long.MaxValue));
+                sb.EmitAppCall(UInt160.Zero, "balanceOf", UInt160.Parse("01ff00ff00ff00ff00ff00ff00ff00ff00ff00a4"));
+                sb.Emit(OpCode.EQUAL);
+                sb.Emit(OpCode.ASSERT);
+
+                Assert.IsTrue(sb.ToArray().IsSolidTransfer());
+            }
         }
     }
 }

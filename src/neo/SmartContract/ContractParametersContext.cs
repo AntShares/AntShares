@@ -106,6 +106,19 @@ namespace Neo.SmartContract
         {
             this.Verifiable = verifiable;
             this.ContextItems = new Dictionary<UInt160, ContextItem>();
+
+            if (verifiable is Transaction tx && tx.Witnesses != null)
+            {
+                // Check solid transfer
+
+                foreach (var witness in tx.Witnesses)
+                {
+                    if (witness.VerificationScript != null && witness.VerificationScript.IsSolidTransfer())
+                    {
+                        _ = CreateItem(Contract.Create(Array.Empty<ContractParameterType>(), witness.VerificationScript));
+                    }
+                }
+            }
         }
 
         public bool Add(Contract contract, int index, object parameter)
@@ -188,6 +201,14 @@ namespace Neo.SmartContract
             item = new ContextItem(contract);
             ContextItems.Add(contract.ScriptHash, item);
             return item;
+        }
+
+        public bool IsCompleted(UInt160 scriptHash)
+        {
+            if (!ContextItems.TryGetValue(scriptHash, out ContextItem item))
+                return false;
+
+            return item.Signatures.Count == item.Parameters.Length;
         }
 
         public static ContractParametersContext FromJson(JObject json)

@@ -410,6 +410,43 @@ namespace Neo.UnitTests.Consensus
             mockContext.Object.CountCommitted.Should().Be(3);
             // =============================================
 
+            // ============================================================================
+            //                      Tests with future payload
+            // ============================================================================
+            rmPayload.BlockIndex++;
+            // Forcing trying save
+            actorConsensus.Tell(rmPayload);
+            Console.WriteLine("\nWaiting for recovery due to failed nodes... ");
+            onRecoveryRequestAfterRecovery = subscriber.ExpectMsg<LocalNode.SendDirectly>();
+            rrPayload = (ConsensusPayload)onRecoveryRequestAfterRecovery.Inventory;
+            rrMessage = (RecoveryRequest)rrPayload.ConsensusMessage;
+            rrMessage.Timestamp.Should().Be(defaultTimestamp);
+            Console.WriteLine("Assert that payload was correctly saved. CounterFuturePayloads is 1");
+            mockContext.Object.CountFuturePayloads.Should().Be(1);
+            Console.WriteLine("\nAsserting rmPayload was correctly storage into future...");
+            mockContext.Object.FutureRecoveryPayloads[rmPayload.ValidatorIndex].Should().Be(rmPayload);
+
+            // Returning BlockIndex to current one to try to load
+            mockContext.Object.FutureRecoveryPayloads[rmPayload.ValidatorIndex].BlockIndex--;
+            // Signing recovery accordingly
+            SignPayload(mockContext.Object.FutureRecoveryPayloads[rmPayload.ValidatorIndex], kp_array[rmPayload.ValidatorIndex]);
+
+            Console.WriteLine("will trigger OnPersistCompleted again with OnStart flag!");
+            actorConsensus.Tell(testPersistCompleted);
+            Console.WriteLine("\n==========================");
+            Console.WriteLine("\nWaiting for recovery due to failed nodes... ");
+            var recoveryRequestResponseAfterInitialize = subscriber.ExpectMsg<LocalNode.SendDirectly>();
+            var recoveryRequestPayload = (ConsensusPayload)recoveryRequestResponseAfterInitialize.Inventory;
+            var rrm2 = (RecoveryRequest)recoveryRequestPayload.ConsensusMessage;
+            rrm2.Timestamp.Should().Be(defaultTimestamp);
+            Console.WriteLine("\nAsserting CounterFuturePayloads was consumed to 0...");
+            mockContext.Object.CountFuturePayloads.Should().Be(0);
+            Console.WriteLine("\nAsserting CountCommitted is 3 (after recovery)...");
+            mockContext.Object.CountCommitted.Should().Be(3);
+            // ============================================================================
+            //                      Finish tests with future payload
+            // ============================================================================
+
             // =============================================
             // ============================================================================
             //                      finalize ConsensusService actor
@@ -426,12 +463,12 @@ namespace Neo.UnitTests.Consensus
             });
             mockContext.Object.Snapshot.Commit();
 
-            Console.WriteLine("mockContext Reset.");
+            Console.WriteLine("mockContext mockContext.Object.Reset(0)...");
             mockContext.Object.Reset(0);
-            Console.WriteLine("TimeProvider Reset.");
+            Console.WriteLine("TimeProvider ResetToDefault...");
             TimeProvider.ResetToDefault();
 
-            Console.WriteLine("Finalizing consensus service actor.");
+            Console.WriteLine("Finalizing consensus service actor...");
             Sys.Stop(actorConsensus);
             Console.WriteLine("Actor actorConsensus Stopped.\n");
         }
@@ -563,6 +600,11 @@ namespace Neo.UnitTests.Consensus
 
             consensusContext.LastChangeViewPayloads = new ConsensusPayload[consensusContext.Validators.Length];
 
+            consensusContext.FutureCommitPayloads = new ConsensusPayload[consensusContext.Validators.Length];
+            consensusContext.FuturePreparationPayloads = new ConsensusPayload[consensusContext.Validators.Length];
+            consensusContext.FutureChangeViewPayloads = new ConsensusPayload[consensusContext.Validators.Length];
+            consensusContext.FutureRecoveryPayloads = new ConsensusPayload[consensusContext.Validators.Length];
+
             var copiedContext = TestUtils.CopyMsgBySerialization(consensusContext, new ConsensusContext(null, null));
 
             copiedContext.Block.PrevHash.Should().Be(consensusContext.Block.PrevHash);
@@ -579,6 +621,10 @@ namespace Neo.UnitTests.Consensus
             copiedContext.PreparationPayloads.Should().BeEquivalentTo(consensusContext.PreparationPayloads);
             copiedContext.CommitPayloads.Should().BeEquivalentTo(consensusContext.CommitPayloads);
             copiedContext.ChangeViewPayloads.Should().BeEquivalentTo(consensusContext.ChangeViewPayloads);
+            copiedContext.FutureCommitPayloads.Should().BeEquivalentTo(consensusContext.FutureCommitPayloads);
+            copiedContext.FuturePreparationPayloads.Should().BeEquivalentTo(consensusContext.FuturePreparationPayloads);
+            copiedContext.FutureChangeViewPayloads.Should().BeEquivalentTo(consensusContext.FutureChangeViewPayloads);
+            copiedContext.FutureRecoveryPayloads.Should().BeEquivalentTo(consensusContext.FutureRecoveryPayloads);
         }
 
         [TestMethod]

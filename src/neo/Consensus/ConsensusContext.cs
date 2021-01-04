@@ -41,6 +41,17 @@ namespace Neo.Consensus
         /// Store all verified unsorted transactions' senders' fee currently in the consensus context.
         /// </summary>
         public TransactionVerificationContext VerificationContext = new TransactionVerificationContext();
+        
+        /// <summary>
+        /// Future payloads used when CN are probably lagged
+        /// Verified ConsensusPayloads are cached and the lastest height are stored
+        /// They are possibly used when the nodes syncs to the last height
+        /// </summary>
+        public ConsensusPayload[] FuturePreparationPayloads;
+        public ConsensusPayload[] FutureCommitPayloads;
+        public ConsensusPayload[] FutureChangeViewPayloads;
+        public ConsensusPayload[] FutureRecoveryPayloads;
+        public uint CountFuturePayloads = 0;
 
         public SnapshotView Snapshot { get; private set; }
         private KeyPair keyPair;
@@ -367,7 +378,7 @@ namespace Neo.Consensus
             });
         }
 
-        public void Reset(byte viewNumber)
+        public void Reset(byte viewNumber, bool resetFutures = true)
         {
             if (viewNumber == 0)
             {
@@ -444,7 +455,25 @@ namespace Neo.Consensus
             Block.Transactions = null;
             TransactionHashes = null;
             PreparationPayloads = new ConsensusPayload[Validators.Length];
+
             if (MyIndex >= 0) LastSeenMessage[Validators[MyIndex]] = Block.Index;
+
+            if (resetFutures || (FutureCommitPayloads.Count() != Validators.Length))
+                ResetFuturePayloads();
+        }
+
+        public void ResetFuturePayloads()
+        {
+            FutureCommitPayloads = new ConsensusPayload[Validators.Length];
+            FuturePreparationPayloads = new ConsensusPayload[Validators.Length];
+            FutureChangeViewPayloads = new ConsensusPayload[Validators.Length];
+            FutureRecoveryPayloads = new ConsensusPayload[Validators.Length];
+            CountFuturePayloads = 0;
+        }
+
+        public bool HasFuturePayloads()
+        {
+            return CountFuturePayloads > 0;
         }
 
         public void Save()

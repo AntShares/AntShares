@@ -32,6 +32,8 @@ namespace Neo.Consensus
         private uint block_received_index;
         private bool started = false;
 
+        private static uint furtherPayloadToSave = 3;
+
         /// <summary>
         /// This will record the information from last scheduled timer
         /// </summary>
@@ -178,7 +180,7 @@ namespace Neo.Consensus
 
         private void InitializeConsensus(byte viewNumber)
         {
-            context.Reset(viewNumber);
+            context.Reset(viewNumber, !context.HasFuturePayloads());
             if (viewNumber > 0)
                 Log($"changeview: view={viewNumber} primary={context.Validators[context.GetPrimaryIndex((byte)(viewNumber - 1u))]}", LogLevel.Warning);
             Log($"initialize: height={context.Block.Index} view={viewNumber} index={context.MyIndex} role={(context.IsPrimary ? "Primary" : context.WatchOnly ? "WatchOnly" : "Backup")}");
@@ -207,8 +209,42 @@ namespace Neo.Consensus
             {
                 ChangeTimer(TimeSpan.FromMilliseconds(Blockchain.MillisecondsPerBlock << (viewNumber + 1)));
             }
+
+            // Try to speed up consensus if cached future payloads exists
+            if (context.HasFuturePayloads())
+            {
+                TryToConsumeFuturePayload(context.FutureChangeViewPayloads);
+                if (context.HasFuturePayloads())
+                    TryToConsumeFuturePayload(context.FuturePreparationPayloads);
+                if (context.HasFuturePayloads())
+                    TryToConsumeFuturePayload(context.FutureCommitPayloads);
+                if (context.HasFuturePayloads())
+                    TryToConsumeFuturePayload(context.FutureRecoveryPayloads);
+            }
         }
 
+        private void TryToConsumeFuturePayload(ConsensusPayload[] payloadsArray)
+        {
+            for (int p = 0; p < payloadsArray.Length; p++)
+            {
+                var payload = payloadsArray[p];
+                if (payload != null)
+                {
+                    if (payload.BlockIndex < context.Block.Index)
+                    {
+                        // This future payload is not future anymore, discard it
+                        payloadsArray[p] = null;
+                        context.CountFuturePayloads = context.CountFuturePayloads - 1;
+                    }
+                    else if (payload.PrevHash == context.Block.PrevHash && payload.BlockIndex == context.Block.Index)
+                    {
+                        ReverifyAndProcessPayload(payload);
+                        payloadsArray[p] = null;
+                        context.CountFuturePayloads = context.CountFuturePayloads - 1;
+                    }
+                }
+            }
+        }
         private void Log(string message, LogLevel level = LogLevel.Info)
         {
             Utility.Log(nameof(ConsensusService), level, message);
@@ -273,10 +309,81 @@ namespace Neo.Consensus
                 ChangeTimer(nextDelay);
         }
 
+        private void TryToSaveFuturePayloads(ConsensusPayload payload)
+        {
+            // Limit the maximum future payload to be saved, 
+            // avoiding caching payload when node is lagged behind by more than furtherPayloadToSave locks
+            if ((payload.BlockIndex >= context.Block.Index + 1) && (payload.BlockIndex <= context.Block.Index + furtherPayloadToSave))
+            {
+                ConsensusMessage futureMessage;
+                try
+                {
+                    futureMessage = payload.ConsensusMessage;
+                }
+                catch (FormatException)
+                {
+                    return;
+                }
+                catch (IOException)
+                {
+                    return;
+                }
+
+                switch (futureMessage)
+                {
+                    case ChangeView view:
+                        TryToSavePayloadIntoArray(context.FutureChangeViewPayloads, payload, futureMessage.ViewNumber);
+                        break;
+                    case Commit commit:
+                        TryToSavePayloadIntoArray(context.FutureCommitPayloads, payload, futureMessage.ViewNumber);
+                        break;
+                    case RecoveryMessage recovery:
+                        TryToSavePayloadIntoArray(context.FutureRecoveryPayloads, payload, futureMessage.ViewNumber);
+                        break;
+                    case PrepareRequest request:
+                    case PrepareResponse response:
+                        TryToSavePayloadIntoArray(context.FuturePreparationPayloads, payload, futureMessage.ViewNumber);
+                        break;
+                }
+            }
+        }
+
+        private void TryToSavePayloadIntoArray(ConsensusPayload[] payloadsArray, ConsensusPayload payload, byte pViewNumber)
+        {
+            byte lastViewNumber = 0;
+            uint lastHeight = 0;
+            if (payloadsArray[payload.ValidatorIndex] != null)
+            {
+                lastViewNumber = payloadsArray[payload.ValidatorIndex].ConsensusMessage.ViewNumber;
+                lastHeight = payloadsArray[payload.ValidatorIndex].BlockIndex;
+            }
+            // Update counter of future payloads if no future payload was known for this ValidatorIndex
+            if (lastViewNumber == 0 && lastHeight == 0)
+                context.CountFuturePayloads = context.CountFuturePayloads + 1;
+
+            if (payload.BlockIndex < lastHeight)
+            {
+                Log($"Trying to save validator {payload.ValidatorIndex} payload from height {payload.BlockIndex} but payload of {lastHeight} is already known", LogLevel.Warning);
+            }
+            else if (payload.BlockIndex == lastHeight)
+            {
+                if (lastViewNumber != 0 && pViewNumber > lastViewNumber)
+                    payloadsArray[payload.ValidatorIndex] = payload;
+            }
+            else
+            {
+                payloadsArray[payload.ValidatorIndex] = payload;
+            }
+        }
+
         private void OnConsensusPayload(ConsensusPayload payload)
         {
-            if (context.BlockSent) return;
             if (payload.Version != context.Block.Version) return;
+            if (payload.ValidatorIndex >= context.Validators.Length) return;
+
+            TryToSaveFuturePayloads(payload);
+
+            if (context.BlockSent) return;
             if (payload.PrevHash != context.Block.PrevHash || payload.BlockIndex != context.Block.Index)
             {
                 if (context.Block.Index < payload.BlockIndex)
@@ -285,7 +392,6 @@ namespace Neo.Consensus
                 }
                 return;
             }
-            if (payload.ValidatorIndex >= context.Validators.Length) return;
             ConsensusMessage message;
             try
             {
@@ -650,7 +756,8 @@ namespace Neo.Consensus
         private bool ReverifyAndProcessPayload(ConsensusPayload payload)
         {
             if (!payload.Verify(context.Snapshot)) return false;
-            OnConsensusPayload(payload);
+            if (payload.BlockIndex == context.Block.Index)
+                OnConsensusPayload(payload);
             return true;
         }
 

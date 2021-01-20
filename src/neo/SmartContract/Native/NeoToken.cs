@@ -300,6 +300,12 @@ namespace Neo.SmartContract.Native
 
         private CachedCommittee GetCommitteeFromCache(StoreView snapshot)
         {
+            if (ProtocolSettings.Default.EmergencyMode.Contains(snapshot.Height))
+            {
+                // Restore original committee because the block it's in emergency mode
+                var candidates = GetCandidates(snapshot);
+                return new CachedCommittee(Blockchain.StandbyCommittee.Select(p => (p, candidates.FirstOrDefault(k => k.PublicKey.Equals(p)).Votes)));
+            }
             return snapshot.Storages[CreateStorageKey(Prefix_Committee)].GetInteroperable<CachedCommittee>();
         }
 

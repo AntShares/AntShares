@@ -18,6 +18,7 @@ namespace Neo
         public int MemoryPoolMaxTransactions { get; }
         public uint MaxTraceableBlocks { get; }
         public IReadOnlyDictionary<string, uint> NativeActivations { get; }
+        public IReadOnlyList<uint> EmergencyMode { get; }
 
         static ProtocolSettings _default;
 
@@ -104,6 +105,11 @@ namespace Neo
             else
                 this.NativeActivations = new Dictionary<string, uint>();
 
+            IConfigurationSection section_em = section.GetSection("EmergencyMode");
+            if (section_em.Exists())
+                this.EmergencyMode = section_em.GetChildren().Select(a => uint.Parse(a.Value)).ToList().AsReadOnly();
+            else
+                this.EmergencyMode = new List<uint>().AsReadOnly();
         }
     }
 }

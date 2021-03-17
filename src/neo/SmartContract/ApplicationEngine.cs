@@ -40,6 +40,7 @@ namespace Neo.SmartContract
 
         public static IReadOnlyDictionary<uint, InteropDescriptor> Services => services;
         private List<IDisposable> Disposables => disposables ??= new List<IDisposable>();
+        public List<UInt160> InvokedContracts => invocationCounter.Keys.ToList();
         public TriggerType Trigger { get; }
         public IVerifiable ScriptContainer { get; }
         public DataCache Snapshot { get; }

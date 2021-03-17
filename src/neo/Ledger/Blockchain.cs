@@ -311,6 +311,7 @@ namespace Neo.Ledger
                     Context.System.EventStream.Publish(application_executed);
                     all_application_executed.Add(application_executed);
                 }
+                bool isGasCalled = false;
                 DataCache clonedSnapshot = snapshot.CreateSnapshot();
                 // Warning: Do not write into variable snapshot directly. Write into variable clonedSnapshot and commit instead.
                 foreach (Transaction tx in block.Transactions)
@@ -321,6 +322,7 @@ namespace Neo.Ledger
                         if (engine.Execute() == VMState.HALT)
                         {
                             clonedSnapshot.Commit();
+                            if (!isGasCalled && engine.InvokedContracts.Contains(NativeContract.GAS.Hash)) isGasCalled = true;
                         }
                         else
                         {
@@ -361,7 +363,7 @@ namespace Neo.Ledger
                     }
                 }
                 if (commitExceptions != null) throw new AggregateException(commitExceptions);
-                system.MemPool.UpdatePoolForBlockPersisted(block, snapshot);
+                system.MemPool.UpdatePoolForBlockPersisted(block, snapshot, isGasCalled);
             }
             extensibleWitnessWhiteList = null;
             block_cache.Remove(block.PrevHash);

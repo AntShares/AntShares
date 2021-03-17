@@ -342,7 +342,7 @@ namespace Neo.Ledger
         }
 
         // Note: this must only be called from a single thread (the Blockchain actor)
-        internal void UpdatePoolForBlockPersisted(Block block, DataCache snapshot)
+        internal void UpdatePoolForBlockPersisted(Block block, DataCache snapshot, bool invalidate = true)
         {
             _txRwLock.EnterWriteLock();
             try
@@ -355,7 +355,7 @@ namespace Neo.Ledger
                 }
 
                 // Add all the previously verified transactions back to the unverified transactions
-                InvalidateVerifiedTransactions();
+                if (invalidate) InvalidateVerifiedTransactions();
             }
             finally
             {

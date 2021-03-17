@@ -47,6 +47,16 @@ namespace Neo.SmartContract
                 throw new InvalidOperationException($"The native contract {contract.Name} is not active.");
             if (updates[0] > NativeContract.Ledger.CurrentIndex(Snapshot))
                 throw new InvalidOperationException($"The native contract {contract.Name} is not active.");
+
+            if (invocationCounter.TryGetValue(contract.Hash, out var counter))
+            {
+                invocationCounter[contract.Hash] = counter + 1;
+            }
+            else
+            {
+                invocationCounter[contract.Hash] = 1;
+            }
+
             contract.Invoke(this, version);
         }
 

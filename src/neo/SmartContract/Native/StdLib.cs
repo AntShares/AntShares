@@ -1,8 +1,10 @@
 #pragma warning disable IDE0051
 
 using Neo.Cryptography;
+using Neo.IO;
 using Neo.IO.Json;
 using Neo.VM.Types;
+using Neo.Wallets;
 using System;
 using System.Globalization;
 using System.Numerics;
@@ -118,6 +120,30 @@ namespace Neo.SmartContract.Native
         public static byte[] Base64Decode([MaxLength(MaxInputLength)] string s)
         {
             return Convert.FromBase64String(s);
+        }
+
+        /// <summary>
+        /// Decodes an address into byte array.
+        /// </summary>
+        /// <param name="engine">Execution engine</param>
+        /// <param name="address">The address <see cref="string"/>.</param>
+        /// <returns>The decoded byte array.</returns>
+        [ContractMethod(CpuFee = 1 << 5)]
+        public static byte[] FromAddress(ApplicationEngine engine, [MaxLength(MaxInputLength)] string address)
+        {
+            return address.ToScriptHash(engine.ProtocolSettings.AddressVersion).ToArray();
+        }
+
+        /// <summary>
+        /// Decodes a byte array into an address.
+        /// </summary>
+        /// <param name="engine">Execution engine</param>
+        /// <param name="data">Data</param>
+        /// <returns>The decoded byte array.</returns>
+        [ContractMethod(CpuFee = 1 << 5)]
+        public static string ToAddress(ApplicationEngine engine, [MaxLength(UInt160.Length)] byte[] data)
+        {
+            return new UInt160(data).ToAddress(engine.ProtocolSettings.AddressVersion);
         }
 
         /// <summary>

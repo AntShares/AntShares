@@ -39,5 +39,16 @@ namespace Neo.IO.Caching
                 return data.AsSerializable(t);
             return null;
         }
+
+        public static Type GetType(T key)
+        {
+            dictionary.TryGetValue(key, out Type t);
+            return t;
+        }
+
+        public static IEnumerable<Type> GetTypes()
+        {
+            return dictionary.Values;
+        }
     }
 }

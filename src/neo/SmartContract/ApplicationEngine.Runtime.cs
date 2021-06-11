@@ -1,3 +1,4 @@
+using Neo.Cryptography;
 using Neo.Cryptography.ECC;
 using Neo.IO;
 using Neo.Network.P2P.Payloads;
@@ -106,6 +107,39 @@ namespace Neo.SmartContract
         /// Burning GAS to benefit the NEO ecosystem.
         /// </summary>
         public static readonly InteropDescriptor System_Runtime_BurnGas = Register("System.Runtime.BurnGas", nameof(BurnGas), 1 << 4, CallFlags.None);
+
+        /// <summary>
+        /// The <see cref="InteropDescriptor"/> of System.Runtime.GetRandom.
+        /// Gets the random number generated from the VRF.
+        /// </summary>
+        public static readonly InteropDescriptor System_Runtime_GetRandom = Register("System.Runtime.GetRandom", nameof(GetRandom), 1 << 4, CallFlags.None);
+
+        /// <summary>
+        /// The implementation of System.Runtime.GetRandom.
+        /// </summary>
+        /// <returns>The last eight bytes of the random number.</returns>
+        protected internal ulong GetRandom()
+        {
+            uint index = PersistingBlock.Index;
+            if (index < ProtocolSettings.ValidatorsCount) throw new InvalidOperationException("Require more blocks than validators");
+
+            byte[] hash = new byte[sizeof(long) + ((ProtocolSettings.ValidatorsCount + 1) * UInt256.Length)];
+
+            // Tx related
+            const int offset = sizeof(long) + UInt256.Length;
+            System.Array.Copy(BitConverter.GetBytes(GasConsumed), 0, hash, 0, sizeof(long));
+            System.Array.Copy(ScriptContainer.Hash.ToArray(), 0, hash, sizeof(long), UInt256.Length);
+
+            // Block related
+            for (int count = 0; count < ProtocolSettings.ValidatorsCount; index--, count++)
+            {
+                var blockHash = count == 0 ? PersistingBlock.Hash : NativeContract.Ledger.GetBlockHash(Snapshot, index);
+                System.Array.Copy(blockHash.ToArray(), 0, hash, offset + (UInt256.Length * count), UInt256.Length);
+            }
+
+            // Sha256
+            return BitConverter.ToUInt64(hash.Sha256());
+        }
 
         /// <summary>
         /// The implementation of System.Runtime.Platform.

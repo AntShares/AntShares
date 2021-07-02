@@ -62,6 +62,7 @@ namespace Neo.Network.P2P
                     break;
                 case MessageCommand.Block:
                 case MessageCommand.Extensible:
+                case MessageCommand.Notary:
                     OnInventoryReceived((IInventory)msg.Payload);
                     break;
                 case MessageCommand.FilterAdd:

@@ -18,6 +18,11 @@ namespace Neo.Network.P2P.Payloads
         /// <summary>
         /// Indicates that the inventory is an <see cref="ExtensiblePayload"/>.
         /// </summary>
-        Extensible = MessageCommand.Extensible
+        Extensible = MessageCommand.Extensible,
+
+        /// <summary>
+        /// Indicates that the inventory is an <see cref="NotaryRequest"/>.
+        /// </summary>
+        Notary = MessageCommand.Notary
     }
 }

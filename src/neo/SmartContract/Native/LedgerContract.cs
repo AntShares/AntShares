@@ -18,6 +18,7 @@ namespace Neo.SmartContract.Native
         private const byte Prefix_CurrentBlock = 12;
         private const byte Prefix_Block = 5;
         private const byte Prefix_Transaction = 11;
+        private const byte Prefix_TrimmedTransaction = 3;
 
         internal LedgerContract()
         {
@@ -34,6 +35,11 @@ namespace Neo.SmartContract.Native
                     BlockIndex = engine.PersistingBlock.Index,
                     Transaction = tx
                 }));
+                foreach (var attr in tx.GetAttributes<ConflictAttribute>())
+                {
+                    var hash = ((ConflictAttribute)attr).Hash;
+                    engine.Snapshot.Add(CreateStorageKey(Prefix_TrimmedTransaction).Add(hash), new StorageItem(engine.PersistingBlock.Index));
+                }
             }
             return ContractTask.CompletedTask;
         }

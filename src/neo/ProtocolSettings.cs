@@ -140,7 +140,8 @@ namespace Neo
                 [nameof(GasToken)] = new[] { 0u },
                 [nameof(PolicyContract)] = new[] { 0u },
                 [nameof(RoleManagement)] = new[] { 0u },
-                [nameof(OracleContract)] = new[] { 0u }
+                [nameof(OracleContract)] = new[] { 0u },
+                [nameof(NotaryContract)] = new[] { 0u }
             }
         };
 

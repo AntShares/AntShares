@@ -327,12 +327,13 @@ namespace Neo.Network.P2P.Payloads
         /// <param name="settings">The <see cref="ProtocolSettings"/> used to verify the transaction.</param>
         /// <param name="snapshot">The snapshot used to verify the transaction.</param>
         /// <param name="context">The <see cref="TransactionVerificationContext"/> used to verify the transaction.</param>
+        /// <param name="mempool">The transactions used to verify the conflict.</param>
         /// <returns>The result of the verification.</returns>
-        public VerifyResult Verify(ProtocolSettings settings, DataCache snapshot, TransactionVerificationContext context)
+        public VerifyResult Verify(ProtocolSettings settings, DataCache snapshot, TransactionVerificationContext context, IEnumerable<Transaction> mempool = null)
         {
             VerifyResult result = VerifyStateIndependent(settings);
             if (result != VerifyResult.Succeed) return result;
-            return VerifyStateDependent(settings, snapshot, context);
+            return VerifyStateDependent(settings, snapshot, context, mempool);
         }
 
         /// <summary>
@@ -341,8 +342,9 @@ namespace Neo.Network.P2P.Payloads
         /// <param name="settings">The <see cref="ProtocolSettings"/> used to verify the transaction.</param>
         /// <param name="snapshot">The snapshot used to verify the transaction.</param>
         /// <param name="context">The <see cref="TransactionVerificationContext"/> used to verify the transaction.</param>
+        /// <param name="mempool">The transactions used to verify the conflict.</param>
         /// <returns>The result of the verification.</returns>
-        public virtual VerifyResult VerifyStateDependent(ProtocolSettings settings, DataCache snapshot, TransactionVerificationContext context)
+        public virtual VerifyResult VerifyStateDependent(ProtocolSettings settings, DataCache snapshot, TransactionVerificationContext context, IEnumerable<Transaction> mempool = null)
         {
             uint height = NativeContract.Ledger.CurrentIndex(snapshot);
             if (ValidUntilBlock <= height || ValidUntilBlock > height + settings.MaxValidUntilBlockIncrement)
@@ -352,10 +354,16 @@ namespace Neo.Network.P2P.Payloads
                 if (NativeContract.Policy.IsBlocked(snapshot, hash))
                     return VerifyResult.PolicyFail;
             if (!(context?.CheckTransaction(this, snapshot) ?? true)) return VerifyResult.InsufficientFunds;
+            long notary_fee = 0;
             foreach (TransactionAttribute attribute in Attributes)
+            {
                 if (!attribute.Verify(snapshot, this))
                     return VerifyResult.Invalid;
-            long net_fee = NetworkFee - Size * NativeContract.Policy.GetFeePerByte(snapshot);
+                if (attribute is NotaryAssisted)
+                    notary_fee = (((NotaryAssisted)attribute).NKeys + 1) * NativeContract.Notary.GetNotaryServiceFeePerKey(snapshot);
+            }
+            if (mempool is not null && !VerifyConflicts(mempool)) return VerifyResult.Invalid;
+            long net_fee = NetworkFee - Size * NativeContract.Policy.GetFeePerByte(snapshot) - notary_fee;
             if (net_fee < 0) return VerifyResult.InsufficientFunds;
 
             if (net_fee > MaxVerificationGas) net_fee = MaxVerificationGas;
@@ -435,6 +443,20 @@ namespace Neo.Network.P2P.Payloads
                 }
             }
             return VerifyResult.Succeed;
+        }
+
+        private bool VerifyConflicts(IEnumerable<Transaction> mempool)
+        {
+            return !GetAttributes<ConflictAttribute>()
+                .Select(p => p.Hash)
+                .Intersect(mempool.Select(p => p.Hash))
+                .Any() &&
+                !mempool
+                .Select(p => p
+                    .GetAttributes<ConflictAttribute>()
+                    .Select(p => p.Hash))
+                .Aggregate(Enumerable.Empty<UInt256>(), (conflicts, p) => conflicts.Union(p))
+                .Contains(Hash);
         }
 
         public StackItem ToStackItem(ReferenceCounter referenceCounter)

@@ -65,6 +65,11 @@ namespace Neo.SmartContract.Native
         /// </summary>
         public static OracleContract Oracle { get; } = new();
 
+        /// <summary>
+        /// Gets the instance of the <see cref="NotaryContract"/> class.
+        /// </summary>
+        public static NotaryContract Notary { get; } = new();
+
         #endregion
 
         /// <summary>

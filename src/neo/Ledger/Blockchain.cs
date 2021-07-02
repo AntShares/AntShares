@@ -215,6 +215,7 @@ namespace Neo.Ledger
                 Block block => OnNewBlock(block),
                 Transaction transaction => OnNewTransaction(transaction),
                 ExtensiblePayload payload => OnNewExtensiblePayload(payload),
+                NotaryRequest payload => OnNotaryRequest(payload),
                 _ => throw new NotSupportedException()
             };
             if (result == VerifyResult.Succeed && relay)
@@ -311,6 +312,13 @@ namespace Neo.Ledger
             DataCache snapshot = system.StoreView;
             extensibleWitnessWhiteList ??= UpdateExtensibleWitnessWhiteList(system.Settings, snapshot);
             if (!payload.Verify(system.Settings, snapshot, extensibleWitnessWhiteList)) return VerifyResult.Invalid;
+            system.RelayCache.Add(payload);
+            return VerifyResult.Succeed;
+        }
+
+        private VerifyResult OnNotaryRequest(NotaryRequest payload)
+        {
+            if (!payload.Verify(system.Settings)) return VerifyResult.Invalid;
             system.RelayCache.Add(payload);
             return VerifyResult.Succeed;
         }

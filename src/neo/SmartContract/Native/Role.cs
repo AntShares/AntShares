@@ -18,6 +18,11 @@ namespace Neo.SmartContract.Native
         /// <summary>
         /// NeoFS Alphabet nodes.
         /// </summary>
-        NeoFSAlphabetNode = 16
+        NeoFSAlphabetNode = 16,
+
+        /// <summary>
+        /// Notary nodes
+        /// </summary>
+        Notary = 128
     }
 }

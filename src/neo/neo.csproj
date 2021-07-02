@@ -30,7 +30,7 @@
     <PackageReference Include="BouncyCastle.NetCore" Version="1.8.8" />
     <PackageReference Include="K4os.Compression.LZ4" Version="1.2.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.6" />
-    <PackageReference Include="Neo.VM" Version="3.0.0-rc3" />
+    <PackageReference Include="Neo.VM" Version="3.0.0-CI00277" />
   </ItemGroup>
 
 </Project>

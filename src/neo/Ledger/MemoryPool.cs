@@ -296,7 +296,7 @@ namespace Neo.Ledger
                 _txRwLock.ExitWriteLock();
             }
 
-            foreach (IMemoryPoolTxObserverPlugin plugin in Plugin.TxObserverPlugins)
+            foreach (IMemoryPoolTxObserverPlugin plugin in _system.TxObserverPlugins)
             {
                 plugin.TransactionAdded(_system, poolItem.Tx);
                 if (removedTransactions != null)
@@ -466,7 +466,7 @@ namespace Neo.Ledger
             }
 
             var invalidTransactions = invalidItems.Select(p => p.Tx).ToArray();
-            foreach (IMemoryPoolTxObserverPlugin plugin in Plugin.TxObserverPlugins)
+            foreach (IMemoryPoolTxObserverPlugin plugin in _system.TxObserverPlugins)
                 plugin.TransactionsRemoved(_system, MemoryPoolTxRemovalReason.NoLongerValid, invalidTransactions);
 
             return reverifiedItems.Count;

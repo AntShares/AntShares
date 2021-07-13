@@ -38,7 +38,7 @@ namespace Neo.Network.P2P
 
         private void OnMessage(Message msg)
         {
-            foreach (IP2PPlugin plugin in Plugin.P2PPlugins)
+            foreach (IP2PPlugin plugin in system.P2PPlugins)
                 if (!plugin.OnP2PMessage(system, msg))
                     return;
             if (Version == null)

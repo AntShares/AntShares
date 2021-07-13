@@ -415,11 +415,11 @@ namespace Neo.Ledger
                     Context.System.EventStream.Publish(application_executed);
                     all_application_executed.Add(application_executed);
                 }
-                foreach (IPersistencePlugin plugin in Plugin.PersistencePlugins)
+                foreach (IPersistencePlugin plugin in system.PersistencePlugins)
                     plugin.OnPersist(system, block, snapshot, all_application_executed);
                 snapshot.Commit();
                 List<Exception> commitExceptions = null;
-                foreach (IPersistencePlugin plugin in Plugin.PersistencePlugins)
+                foreach (IPersistencePlugin plugin in system.PersistencePlugins)
                 {
                     try
                     {

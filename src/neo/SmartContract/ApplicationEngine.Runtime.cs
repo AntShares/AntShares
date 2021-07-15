@@ -116,7 +116,7 @@ namespace Neo.SmartContract
 
         /// <summary>
         /// The <see cref="InteropDescriptor"/> of System.Runtime.BurnGas.
-        /// Burning GAS to benefit the NEO ecosystem.
+        /// Burning GAS to benefit the Neo ecosystem.
         /// </summary>
         public static readonly InteropDescriptor System_Runtime_BurnGas = Register("System.Runtime.BurnGas", nameof(BurnGas), 1 << 4, CallFlags.None);
 
@@ -124,10 +124,10 @@ namespace Neo.SmartContract
         /// The implementation of System.Runtime.Platform.
         /// Gets the name of the current platform.
         /// </summary>
-        /// <returns>It always returns "NEO".</returns>
+        /// <returns>It always returns "Neo".</returns>
         internal protected static string GetPlatform()
         {
-            return "NEO";
+            return "Neo";
         }
 
         /// <summary>
@@ -321,7 +321,7 @@ namespace Neo.SmartContract
 
         /// <summary>
         /// The implementation of System.Runtime.BurnGas.
-        /// Burning GAS to benefit the NEO ecosystem.
+        /// Burning GAS to benefit the Neo ecosystem.
         /// </summary>
         /// <param name="gas">The amount of GAS to burn.</param>
         protected internal void BurnGas(long gas)

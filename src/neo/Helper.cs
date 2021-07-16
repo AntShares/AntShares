@@ -168,7 +168,7 @@ namespace Neo
                 v = x;
             }
             v %= n;
-            if (v < 0) v = (v + n) % n;
+            if (v.Sign < 0) v = (v + n) % n;
             return v;
         }
 

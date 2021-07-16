@@ -116,7 +116,7 @@ namespace Neo.SmartContract.Native
         [ContractMethod(CpuFee = 1 << 15, RequiredCallFlags = CallFlags.States)]
         private void SetMinimumDeploymentFee(ApplicationEngine engine, BigInteger value)
         {
-            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+            if (value.Sign < 0) throw new ArgumentOutOfRangeException(nameof(value));
             if (!CheckCommittee(engine)) throw new InvalidOperationException();
             engine.Snapshot.GetAndChange(CreateStorageKey(Prefix_MinimumDeploymentFee)).Set(value);
         }

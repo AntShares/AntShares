@@ -192,7 +192,7 @@ namespace Neo.SmartContract.Native
         [ContractMethod(CpuFee = 1 << 15, RequiredCallFlags = CallFlags.States)]
         private void SetGasPerBlock(ApplicationEngine engine, BigInteger gasPerBlock)
         {
-            if (gasPerBlock < 0 || gasPerBlock > 10 * GAS.Factor)
+            if (gasPerBlock.Sign < 0 || gasPerBlock > 10 * GAS.Factor)
                 throw new ArgumentOutOfRangeException(nameof(gasPerBlock));
             if (!CheckCommittee(engine)) throw new InvalidOperationException();
 

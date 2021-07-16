@@ -32,5 +32,14 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.6" />
     <PackageReference Include="Neo.VM" Version="3.0.0-CI00281" />
   </ItemGroup>
+  
+  <PropertyGroup>
+    <FormatOnLinux Condition="!Exists('$(HOME)\.dotnet\tools\dotnet-format')">False</FormatOnLinux>
+    <FormatOnWin Condition="!Exists('$(USERPROFILE)\.dotnet\tools\dotnet-format.exe')">False</FormatOnWin>
+   </PropertyGroup>
+
+  <Target Name="PreBuild" Condition="$(BuildingInsideVisualStudio) == 'True' AND ($(FormatOnLinux)!=False Or $(FormatOnWin) != False) " BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet format" />
+  </Target>
 
 </Project>

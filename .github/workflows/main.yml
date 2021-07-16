@@ -21,8 +21,8 @@ jobs:
         dotnet-version: ${{ env.DOTNET_VERSION }}
     - name: Check format
       run: |
-        dotnet tool install --version 5.0.142902 --tool-path ./ dotnet-format --add-source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
-        ./dotnet-format --check -v diagnostic
+        dotnet tool install -g dotnet-format --version 5.1.225507 --add-source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
+        dotnet-format --check -v diagnostic
     - name: Test
       run: |
         find tests -name *.csproj | xargs -I % dotnet add % package coverlet.msbuild

@@ -25,4 +25,14 @@
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <FormatOnLinux Condition="!Exists('$(HOME)\.dotnet\tools\dotnet-format')">False</FormatOnLinux>
+    <FormatOnWin Condition="!Exists('$(USERPROFILE)\.dotnet\tools\dotnet-format.exe')">False</FormatOnWin>
+   </PropertyGroup>
+
+  <Target Name="PreBuild" Condition="$(BuildingInsideVisualStudio) == 'True' AND ($(FormatOnLinux)!=False Or $(FormatOnWin) != False) " BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet format" />
+  </Target>
+
 </Project>

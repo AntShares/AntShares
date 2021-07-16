@@ -21,7 +21,7 @@ namespace Neo.SmartContract.Native
         internal override ContractTask Initialize(ApplicationEngine engine)
         {
             UInt160 account = Contract.GetBFTAddress(engine.ProtocolSettings.StandbyValidators);
-            return Mint(engine, account, 30_000_000 * Factor, false);
+            return Mint(engine, account, 52_000_000 * Factor, false);
         }
 
         internal override async ContractTask OnPersist(ApplicationEngine engine)

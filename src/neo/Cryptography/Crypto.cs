@@ -72,17 +72,15 @@ namespace Neo.Cryptography
                     new Org.BouncyCastle.Math.BigInteger(pubkey.X.Value.ToString()),
                     new Org.BouncyCastle.Math.BigInteger(pubkey.Y.Value.ToString()));
                 var pubKey = new Org.BouncyCastle.Crypto.Parameters.ECPublicKeyParameters("ECDSA", point, domain);
-                var signer = Org.BouncyCastle.Security.SignerUtilities.GetSigner("SHA-256withECDSA");
-
-                signer.Init(false, pubKey);
-                signer.BlockUpdate(message.ToArray(), 0, message.Length);
+                var signer = new Org.BouncyCastle.Crypto.Signers.ECDsaSigner();
 
                 var sig = signature.ToArray();
                 var r = new Org.BouncyCastle.Math.BigInteger(1, sig, 0, 32);
                 var s = new Org.BouncyCastle.Math.BigInteger(1, sig, 32, 32);
-                sig = new Org.BouncyCastle.Asn1.DerSequence(new Org.BouncyCastle.Asn1.DerInteger(r), new Org.BouncyCastle.Asn1.DerInteger(s)).GetDerEncoded();
 
-                return signer.VerifySignature(sig);
+                signer.Init(false, pubKey);
+                var hash = Helper.Sha256(message.ToArray());
+                return signer.VerifySignature(hash, r, s);
             }
             else
             {
